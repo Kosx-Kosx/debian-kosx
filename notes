@@ -1,0 +1,91 @@
+All versions are taken from Debian squeeze. (Well, mostly.)
+
+export PATH=$prefix/bin:$PATH
+export PERL5LIB=$prefix/perl
+
+** dpkg
+remove -Wvla from configure
+PERL_LIBDIR=$prefix/perl ./configure --disable-linker-optimisations --without-start-stop-daemon --prefix=$prefix
+make
+make install PERL_LIBDIR=$prefix/perl
+TODO port start-stop-daemon
+TODO dselect/methods/Makefile.am attempts to install into PERL_LIBDIR, even if you specify --prefix
+TODO same with scripts/Makefile.am
+for file in diversions statoverride status available; do touch $prefix/var/lib/dpkg/$file; done
+TODO figure out why available needs to be there (it's not in the postinst)
+
+Then re-configure and reinstall dpkg so that dpkg --print-architecture works.
+TODO why???
+
+Install temporary md5sum, and sha1sum/sha256sum symlinks. At this point, you can use dpkg-source -x
+
+** debhelper
+use a version from at least November 2012 (for PREFIX support)
+avoid use of find -printf in Makefile by using find -print | xargs -n1 basename instead
+use sed -i ""
+make PERLLIBDIR=$prefix/perl/Debian/Debhelper PREFIX=$prefix USE_NLS=no
+make install PERLLIBDIR=$prefix/perl/Debian/Debhelper PREFIX=$prefix USE_NLS=no
+
+TODO dh_installman should use a better test for whether --recode is supported. For now, patch it to check man --help 2>&1 | grep recode, instead of just man --version
+
+** fakeroot
+./configure --prefix=$prefix
+make
+make install
+
+** tar
+./configure --prefix=$prefix
+make
+make install
+
+** gzip
+./configure --prefix=$prefix
+make
+make install
+
+** findutils
+./configure --prefix=$prefix
+make
+make install
+
+** coreutils
+TODO decide if we need the dpatches?
+edit lib/stpncpy.c to #undef stpncpy after #include <string.h>
+
+---
+
+dpkg installation:
+mkdir -p ../r/var/lib
+cp -a ../b/var/lib/dpkg ../r/var/lib
+touch ../r/var/lib/dpkg/available
+fakeroot dpkg --force-bad-path --instdir=../r --admindir=../r/var/lib/dpkg 
+(note that --root will not work, because it will try to use the prefix compiled into this dpkg)
+
+mkdir -p ../r/usr/lib/system
+
+TODO `gcc -dumpmachine` says we're compiling for i686 (and gcc itself is i686-apple-darwin11-llvm-gcc-4.2). We want a x86_64/amd64 gcc... figure out how
+
+--
+
+** base-files
+For some dumb reason OS X calls group 0 "wheel", not "root". Edit debian/rules' call to chown to match
+
+** debhelper
+edit "run" to make PERL5LIB incorporate the existing perl5lib
+
+** fakeroot
+edit debian/rules to rename *.so to *.dylib
+edit debian/rules INSTALL_* to use group wheel, not root
+
+Packages I want:
+bash
+dash
+po4a (common build-dep)
+wherever /usr/share/misc/config.* come from
+awk (predep of base-files)
+dpatch
+binutils (strip, objdump -- dpkg-shlibdeps wants objdump)
+gnupg, for signature validation
+
+Bugs filed:
+#697430 (fakeroot: Please separate preloaded libraries with colons)

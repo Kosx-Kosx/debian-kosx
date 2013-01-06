@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+import os.path
+import shutil
+import subprocess
+import sys
+
+def libs(filename):
+    otool = subprocess.Popen(['otool', '-L', filename], stdout=subprocess.PIPE)
+    otool.stdout.readline() # skip header
+    for line in otool.stdout:
+        yield line.split(' ')[0].strip()
+    otool.wait()
+
+def rlibs(filename):
+    s = set()
+    queue = [filename]
+    for item in queue:
+        for lib in libs(item):
+            if lib not in s:
+                queue.append(lib)
+                s.add(lib)
+    return s
+
+if __name__ == "__main__":
+    filename = sys.argv[1]
+    targetdir = sys.argv[2]
+    for source in rlibs(filename):
+        target = os.path.join(targetdir, source[1:]) # skip leading /
+        if not os.access(target, os.F_OK):
+            print "Copying " + source
+            try:
+                os.makedirs(os.path.dirname(target))
+            except OSError:
+                pass
+            shutil.copy(source, target)
