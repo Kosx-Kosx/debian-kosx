@@ -32,6 +32,7 @@ TODO dh_installman should use a better test for whether --recode is supported. F
 ./configure --prefix=$prefix
 make
 make install
+edit the fakeroot wrapper script to separate $LIB with colons
 
 ** tar
 ./configure --prefix=$prefix
@@ -51,6 +52,11 @@ make install
 ** coreutils
 TODO decide if we need the dpatches?
 edit lib/stpncpy.c to #undef stpncpy after #include <string.h>
+
+** autotools-dev
+create an overlay directory
+copy config.guess and config.sub to /usr/share/misc there
+set FAKEFILES_ROOT to that directory, and DYLD_INSERT_LIBRARIES to fakefiles.dylib
 
 ---
 
